@@ -156,3 +156,7 @@
     pointer-events: none;
   }
 }
+
+.replit-badge {
+  display: none !important;
+}

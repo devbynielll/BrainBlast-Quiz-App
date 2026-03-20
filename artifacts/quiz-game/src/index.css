@@ -122,3 +122,7 @@
     @apply shadow-[inset_0_0px_0_rgba(0,0,0,0.2)];
   }
 }
+
+    .replit-badge {
+      display: none !important;
+    }
