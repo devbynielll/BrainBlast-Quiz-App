@@ -16,6 +16,19 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Artifacts
+
+### `artifacts/quiz-game` (`@workspace/quiz-game`)
+
+React + Vite Senior High School quiz game. Frontend-only (no backend). Key files:
+- `src/data/questions.ts` — 25 Philippine SHS questions (Math, Science, English, Filipino, ICT, Research, STEM, ABM, HUMSS, TVL)
+- `src/hooks/use-quiz.ts` — full game logic: streak system, speed bonuses, timer, score, localStorage high score
+- `src/screens/` — StartScreen, QuizScreen, ResultsScreen, ReviewScreen
+- `src/components/` — AnimatedBackground, Header
+- Uses: framer-motion, canvas-confetti, lucide-react, tailwindcss
+
+Scoring: 10 pts per correct answer + speed bonus (up to 5 pts) × streak multiplier (1x/1.5x/2x). High score key: `brainblast-shs-highscore`.
+
 ## Structure
 
 ```text

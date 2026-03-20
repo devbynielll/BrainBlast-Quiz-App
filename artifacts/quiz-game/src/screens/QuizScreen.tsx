@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Question } from "@/data/questions";
+import { getLevel, getLevelColor, getStreakLabel, getStreakMultiplier } from "@/hooks/use-quiz";
 import { cn } from "@/lib/utils";
-import { Clock, ArrowRight, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Clock, ArrowRight, CheckCircle2, XCircle, AlertCircle, Flame, Zap } from "lucide-react";
 
 interface QuizScreenProps {
   question: Question;
@@ -12,15 +13,18 @@ interface QuizScreenProps {
   timeLeft: number;
   status: 'idle' | 'answered' | 'timeout';
   playerAnswer: string | null;
+  streak: number;
+  lastAnswerBonus: number;
+  totalScore: number;
   onSubmit: (answer: string | null) => void;
   onNext: () => void;
 }
 
-const ANSWER_COLORS = [
-  'bg-primary text-primary-foreground border-primary hover:bg-primary/90', // Pink
-  'bg-secondary text-secondary-foreground border-secondary hover:bg-secondary/90', // Cyan
-  'bg-accent text-accent-foreground border-accent hover:bg-accent/90', // Yellow
-  'bg-[#8B5CF6] text-white border-[#8B5CF6] hover:bg-[#7C3AED]'  // Purple
+const ANSWER_STYLES = [
+  { base: 'bg-[#e91e8c] text-white border-[#c0176e] shadow-[0_6px_0_#c0176e]', hover: 'hover:bg-[#d4178a]' },
+  { base: 'bg-[#0891b2] text-white border-[#0670a0] shadow-[0_6px_0_#0670a0]', hover: 'hover:bg-[#0780a5]' },
+  { base: 'bg-[#7c3aed] text-white border-[#6028c7] shadow-[0_6px_0_#6028c7]', hover: 'hover:bg-[#6d28d9]' },
+  { base: 'bg-[#d97706] text-white border-[#b46008] shadow-[0_6px_0_#b46008]', hover: 'hover:bg-[#c47005]' },
 ];
 
 export function QuizScreen({
@@ -31,10 +35,13 @@ export function QuizScreen({
   timeLeft,
   status,
   playerAnswer,
+  streak,
+  lastAnswerBonus,
+  totalScore,
   onSubmit,
-  onNext
+  onNext,
 }: QuizScreenProps) {
-  
+
   // Keyboard bindings
   useEffect(() => {
     if (status !== 'idle') {
@@ -50,7 +57,7 @@ export function QuizScreen({
 
     const handleAnswerKey = (e: KeyboardEvent) => {
       const num = parseInt(e.key);
-      if (num >= 1 && num <= 4) {
+      if (num >= 1 && num <= 4 && shuffledAnswers[num - 1]) {
         onSubmit(shuffledAnswers[num - 1]);
       }
     };
@@ -60,77 +67,138 @@ export function QuizScreen({
 
   const progressPercentage = ((questionIndex + 1) / totalQuestions) * 100;
   const isDangerTime = timeLeft <= 5 && status === 'idle';
+  const isWarningTime = timeLeft <= 10 && timeLeft > 5 && status === 'idle';
+  const level = getLevel(questionIndex);
+  const levelColor = getLevelColor(questionIndex);
+  const streakLabel = getStreakLabel(streak);
+  const multiplier = getStreakMultiplier(streak);
+
+  const LABELS = ['A', 'B', 'C', 'D'];
 
   return (
-    <motion.div 
+    <motion.div
       key={question.id}
-      initial={{ opacity: 0, x: 50 }}
+      initial={{ opacity: 0, x: 60 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
+      exit={{ opacity: 0, x: -60 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="min-h-screen flex flex-col pt-24 pb-8 px-4 max-w-4xl mx-auto w-full"
     >
-      {/* Progress Bar & Header */}
-      <div className="w-full space-y-4 mb-8">
-        <div className="flex justify-between items-center text-sm font-bold text-muted-foreground uppercase tracking-wider">
-          <span>Question {questionIndex + 1} of {totalQuestions}</span>
-          <span className={cn(
-            "flex items-center space-x-1 px-3 py-1 rounded-full",
-            isDangerTime ? "text-destructive bg-destructive/10 animate-pulse-fast" : "text-foreground bg-card shadow-sm"
-          )}>
-            <Clock size={16} />
-            <span className="text-xl font-display">{timeLeft}s</span>
-          </span>
+      {/* Progress & Stats Row */}
+      <div className="space-y-3 mb-6">
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          {/* Level badge */}
+          <div className="flex items-center gap-2">
+            <span className={cn("text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-card/80 border border-border", levelColor)}>
+              {level}
+            </span>
+            <span className="text-sm font-bold text-muted-foreground">
+              Q{questionIndex + 1} / {totalQuestions}
+            </span>
+          </div>
+
+          {/* Right side: streak + timer + score */}
+          <div className="flex items-center gap-2">
+            {/* Streak indicator */}
+            <AnimatePresence>
+              {streak >= 3 && (
+                <motion.div
+                  key={streak}
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex items-center gap-1 bg-orange-500/20 border border-orange-500/40 px-3 py-1 rounded-full"
+                >
+                  {streak >= 5 ? (
+                    <Zap size={14} className="text-yellow-300 fill-yellow-300" />
+                  ) : (
+                    <Flame size={14} className="text-orange-400 fill-orange-400" />
+                  )}
+                  <span className="text-sm font-black text-orange-300">{streak}x {streakLabel}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Multiplier badge */}
+            {multiplier > 1 && (
+              <span className="text-xs font-black text-yellow-300 bg-yellow-500/10 border border-yellow-500/30 px-2 py-1 rounded-full">
+                {multiplier}x BONUS
+              </span>
+            )}
+
+            {/* Score */}
+            <div className="bg-card/80 backdrop-blur-md px-3 py-1 rounded-full border border-border shadow-sm">
+              <span className="font-black text-primary text-sm">{totalScore} pts</span>
+            </div>
+
+            {/* Timer */}
+            <div className={cn(
+              "flex items-center gap-1.5 px-3 py-1 rounded-full font-display transition-all",
+              isDangerTime
+                ? "bg-red-500/20 border border-red-500/50 text-red-400 animate-pulse"
+                : isWarningTime
+                ? "bg-yellow-500/10 border border-yellow-500/30 text-yellow-400"
+                : "bg-card/80 border border-border text-foreground"
+            )}>
+              <Clock size={14} />
+              <span className={cn("text-lg font-black", isDangerTime && "text-red-400")}>{timeLeft}s</span>
+            </div>
+          </div>
         </div>
-        <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
-          <motion.div 
-            className="h-full bg-gradient-to-r from-primary to-secondary"
+
+        {/* Progress bar */}
+        <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
             initial={{ width: `${(questionIndex / totalQuestions) * 100}%` }}
             animate={{ width: `${progressPercentage}%` }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
           />
         </div>
       </div>
 
       {/* Question Card */}
-      <div className="bg-card border border-border shadow-xl rounded-3xl p-6 md:p-10 mb-8 relative">
-        <div className="absolute -top-4 left-6 flex space-x-2">
-          <span className="bg-secondary text-secondary-foreground text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+      <div className="bg-card/90 backdrop-blur-md border border-border shadow-2xl rounded-2xl p-6 md:p-10 mb-6 relative">
+        {/* Category & Difficulty badges */}
+        <div className="absolute -top-3.5 left-5 flex gap-2">
+          <span className="bg-secondary text-secondary-foreground text-xs font-black px-3 py-1 rounded-full shadow-md">
             {question.category}
           </span>
           <span className={cn(
-            "text-xs font-bold px-3 py-1 rounded-full shadow-sm text-white",
+            "text-xs font-black px-3 py-1 rounded-full shadow-md text-white",
             question.difficulty === 'Easy' ? "bg-green-500" :
-            question.difficulty === 'Medium' ? "bg-accent text-accent-foreground" : "bg-destructive"
+            question.difficulty === 'Medium' ? "bg-yellow-500 text-black" : "bg-red-500"
           )}>
             {question.difficulty}
           </span>
         </div>
-        <h2 className="text-2xl md:text-4xl font-bold text-foreground mt-4 text-center leading-tight">
+
+        <h2 className="text-xl md:text-3xl font-bold text-foreground mt-3 text-center leading-tight">
           {question.text}
         </h2>
       </div>
 
-      {/* Answers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      {/* Answer Buttons Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
         {shuffledAnswers.map((answer, i) => {
+          const style = ANSWER_STYLES[i % 4];
           const isSelected = playerAnswer === answer;
           const isCorrectAnswer = answer === question.correctAnswer;
           const showAsCorrect = status !== 'idle' && isCorrectAnswer;
           const showAsWrong = status === 'answered' && isSelected && !isCorrectAnswer;
-          
-          let buttonStateClass = ANSWER_COLORS[i];
-          let animationClass = "";
 
-          if (status !== 'idle') {
-            if (showAsCorrect) {
-              buttonStateClass = "bg-green-500 text-white border-green-600 scale-[1.02] shadow-lg z-10";
-              if (isSelected) animationClass = "animate-bounce-in";
-            } else if (showAsWrong) {
-              buttonStateClass = "bg-destructive text-white border-destructive/80 opacity-90";
-              animationClass = "animate-shake";
-            } else {
-              buttonStateClass = "bg-muted text-muted-foreground border-border opacity-50 grayscale";
-            }
+          let btnClass = '';
+          let animClass = '';
+
+          if (status === 'idle') {
+            btnClass = cn(style.base, style.hover, 'active:translate-y-[4px] active:shadow-none cursor-pointer');
+          } else if (showAsCorrect) {
+            btnClass = 'bg-green-500 text-white border-green-700 shadow-[0_6px_0_#15803d] scale-[1.01]';
+            if (isSelected) animClass = 'animate-bounce-in';
+          } else if (showAsWrong) {
+            btnClass = 'bg-red-500 text-white border-red-700 shadow-[0_6px_0_#b91c1c]';
+            animClass = 'animate-shake';
+          } else {
+            btnClass = 'bg-muted text-muted-foreground border-border shadow-none opacity-40 grayscale cursor-not-allowed';
           }
 
           return (
@@ -139,63 +207,90 @@ export function QuizScreen({
               disabled={status !== 'idle'}
               onClick={() => onSubmit(answer)}
               className={cn(
-                "relative btn-3d min-h-[100px] p-6 rounded-2xl text-xl md:text-2xl font-bold flex items-center justify-center text-center transition-all duration-300",
-                buttonStateClass,
-                animationClass
+                "relative min-h-[90px] p-5 rounded-xl text-base md:text-xl font-bold flex items-center gap-4 text-left transition-all duration-200 border-b-4",
+                btnClass,
+                animClass,
+                status === 'idle' && 'hover:brightness-110 hover:-translate-y-0.5'
               )}
             >
-              <span className="absolute top-4 left-4 w-8 h-8 rounded-full bg-black/20 flex items-center justify-center text-sm">
-                {i + 1}
+              {/* Number label */}
+              <span className="w-9 h-9 shrink-0 rounded-lg bg-black/20 flex items-center justify-center text-sm font-black">
+                {LABELS[i]}
               </span>
-              {answer}
-              
-              {/* Result Icons */}
-              {showAsCorrect && <CheckCircle2 className="absolute top-4 right-4 text-white" size={28} />}
-              {showAsWrong && <XCircle className="absolute top-4 right-4 text-white" size={28} />}
+              <span className="flex-1 leading-snug">{answer}</span>
+
+              {/* Status icon */}
+              {showAsCorrect && <CheckCircle2 className="shrink-0 text-white" size={24} />}
+              {showAsWrong && <XCircle className="shrink-0 text-white" size={24} />}
             </button>
           );
         })}
       </div>
 
-      {/* Feedback & Next Button */}
+      {/* Feedback bar */}
       <AnimatePresence>
         {status !== 'idle' && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row items-center justify-between bg-card p-4 rounded-2xl border border-border shadow-lg mt-auto"
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card/90 backdrop-blur-md p-4 rounded-xl border border-border shadow-xl"
           >
-            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+            <div className="flex items-center gap-3">
               {status === 'timeout' ? (
                 <>
-                  <AlertCircle className="text-destructive" size={32} />
-                  <span className="text-xl font-bold text-destructive">Time's Up!</span>
+                  <AlertCircle className="text-amber-400 shrink-0" size={28} />
+                  <div>
+                    <div className="text-lg font-black text-amber-400">Time's Up!</div>
+                    <div className="text-sm text-muted-foreground">Correct: {question.correctAnswer}</div>
+                  </div>
                 </>
               ) : playerAnswer === question.correctAnswer ? (
                 <>
-                  <CheckCircle2 className="text-green-500" size={32} />
-                  <span className="text-xl font-bold text-green-500">Correct! +1 Point</span>
+                  <CheckCircle2 className="text-green-400 shrink-0" size={28} />
+                  <div>
+                    <div className="text-lg font-black text-green-400">
+                      Correct! +{10} pts
+                      {lastAnswerBonus > 0 && (
+                        <motion.span
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="ml-2 text-yellow-300 text-base"
+                        >
+                          ⚡ +{lastAnswerBonus} bonus!
+                        </motion.span>
+                      )}
+                    </div>
+                    {streak >= 2 && (
+                      <div className="text-sm text-orange-300 font-bold">{streak} in a row! 🔥</div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <>
-                  <XCircle className="text-destructive" size={32} />
-                  <span className="text-xl font-bold text-destructive">Nice Try!</span>
+                  <XCircle className="text-red-400 shrink-0" size={28} />
+                  <div>
+                    <div className="text-lg font-black text-red-400">Nice Try!</div>
+                    <div className="text-sm text-muted-foreground">Correct: {question.correctAnswer}</div>
+                  </div>
                 </>
               )}
             </div>
-            
+
             <button
               onClick={onNext}
-              className="btn-3d w-full md:w-auto bg-foreground text-background px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center space-x-2 hover:opacity-90"
               autoFocus
+              className="btn-3d bg-foreground text-background px-6 py-3 rounded-xl font-black text-base flex items-center justify-center gap-2 hover:opacity-90 shrink-0 transition-opacity"
             >
-              <span>Next Question</span>
-              <ArrowRight size={20} />
+              {questionIndex + 1 < totalQuestions ? (
+                <>Next Question <ArrowRight size={18} /></>
+              ) : (
+                <>See Results <ArrowRight size={18} /></>
+              )}
             </button>
           </motion.div>
         )}
       </AnimatePresence>
-
     </motion.div>
   );
 }
