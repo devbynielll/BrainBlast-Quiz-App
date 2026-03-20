@@ -1,0 +1,12 @@
+packages:
+  "framer-motion": "For fluid, bouncy screen transitions and interactive animations matching the playful theme."
+  "canvas-confetti": "For the celebration effect on the results screen when the user scores well."
+  "@types/canvas-confetti": "TypeScript definitions for canvas-confetti."
+  "clsx": "For conditional class names."
+  "tailwind-merge": "For merging tailwind classes safely."
+
+images: []
+
+notes:
+  - No backend required. All state is local and managed via React hooks.
+  - High score is persisted to localStorage under 'brainblast-highscore'.

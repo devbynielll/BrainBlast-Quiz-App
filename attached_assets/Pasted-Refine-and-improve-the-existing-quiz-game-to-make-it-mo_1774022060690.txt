@@ -1,0 +1,85 @@
+Refine and improve the existing quiz game to make it more polished, unique, and suitable for a capstone project presentation.
+
+THEME UPDATE:
+
+* Change the quiz content to focus on Senior High School topics in the Philippines
+* Include basic but relevant questions about:
+
+  * Core subjects (Math, Science, English)
+  * General Academic Strand (GAS)
+  * STEM, HUMSS, ABM, TVL strands
+  * Basic ICT knowledge
+  * Filipino subject basics
+  * Practical Research concepts (very simple)
+* Make questions easy to moderate difficulty (pang Senior High level)
+* Use at least 15 questions
+* Randomize questions every game
+* Randomize answer positions
+
+GAME IMPROVEMENTS:
+
+* Improve overall UI to look more premium and less like a template
+* Make spacing, alignment, and typography more professional
+* Ensure all transitions are smooth and visually appealing
+* Fix any bugs or delays
+
+ADD UNIQUE GAME FEATURES:
+
+* Add a streak system (consecutive correct answers increase score multiplier)
+* Add bonus points if the user answers quickly
+* Add a simple level or progress feel (e.g., Beginner → Intermediate → Expert)
+* Add a “performance summary” at the end with:
+
+  * correct answers
+  * wrong answers
+  * unanswered
+  * percentage
+* Add motivational feedback messages depending on performance
+
+ENHANCE GAME FEEL:
+
+* Make the game feel like a fun school quiz competition
+* Add subtle animations:
+
+  * button hover effects
+  * correct answer glow
+  * wrong answer shake
+  * timer warning animation
+* Add a simple celebration effect (like confetti or highlight) for high scores
+
+REVIEW FEATURE:
+
+* Add a “Review Answers” section after finishing:
+
+  * show each question
+  * show user's answer
+  * show correct answer
+  * indicate if correct or wrong
+
+UI/UX IMPROVEMENTS:
+
+* Make the design more visually consistent and polished
+* Improve mobile responsiveness
+* Make buttons larger and easier to click
+* Improve color harmony and contrast
+* Avoid generic design — make it look like a real application
+
+HIGH SCORE:
+
+* Keep using localStorage
+* Make sure high score updates properly and displays on both start and end screens
+
+FINAL POLISH:
+
+* Ensure everything works smoothly with no bugs
+* Make sure all buttons work correctly
+* Ensure the game runs perfectly from start → quiz → results → restart
+
+IMPORTANT:
+
+* Do not remove existing working features, only improve and extend them
+* Keep code clean, readable, and well-structured
+* Maintain separation of HTML, CSS, and JavaScript
+
+FINAL EXPECTATION:
+The result should look like a complete, polished Senior High School quiz game suitable for a capstone project presentation in the Philippines, with engaging design, smooth gameplay, and meaningful educational content.
