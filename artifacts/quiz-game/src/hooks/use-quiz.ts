@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { QUESTION_POOL, Question, shuffleArray } from '../data/questions';
+import { SHS_QUESTIONS, TRIVIA_QUESTIONS, Question, Difficulty, shuffleArray } from '../data/questions';
 
-export type GameScreen = 'START' | 'QUIZ' | 'RESULTS' | 'REVIEW';
+export type GameScreen = 'START' | 'MODE_SELECT' | 'QUIZ' | 'RESULTS' | 'REVIEW';
+export type QuizMode = 'SHS' | 'Trivia' | 'Mixed';
 
 export interface AnswerRecord {
   question: Question;
@@ -15,9 +16,14 @@ export interface AnswerRecord {
 
 export interface QuizState {
   screen: GameScreen;
+  quizMode: QuizMode;
   questions: Question[];
+  remainingPool: Question[];
+  totalQuestions: number;
   currentQuestionIndex: number;
   currentShuffledAnswers: string[];
+  adaptiveDifficulty: Difficulty;
+  difficultyChanged: 'up' | 'down' | null;
   correctCount: number;
   bonusPoints: number;
   totalScore: number;
@@ -32,11 +38,50 @@ export interface QuizState {
   lastAnswerBonus: number;
 }
 
-const QUESTIONS_PER_GAME = 10;
+const QUESTIONS_PER_GAME = 15;
+const SHS_COUNT = 10;
+const TRIVIA_COUNT = 5;
 const TIME_PER_QUESTION = 15;
 const BASE_POINTS = 10;
 const HIGH_SCORE_KEY = 'brainblast-shs-highscore';
 const THEME_KEY = 'brainblast-theme';
+
+export function getNextDifficulty(current: Difficulty, wasCorrect: boolean): Difficulty {
+  if (wasCorrect) {
+    if (current === 'Easy') return 'Medium';
+    if (current === 'Medium') return 'Hard';
+    return 'Hard';
+  } else {
+    if (current === 'Hard') return 'Medium';
+    if (current === 'Medium') return 'Easy';
+    return 'Easy';
+  }
+}
+
+function pickQuestion(pool: Question[], difficulty: Difficulty): Question | null {
+  const order: Difficulty[] =
+    difficulty === 'Easy' ? ['Easy', 'Medium', 'Hard'] :
+    difficulty === 'Hard' ? ['Hard', 'Medium', 'Easy'] :
+    ['Medium', 'Easy', 'Hard'];
+
+  for (const diff of order) {
+    const matches = pool.filter(q => q.difficulty === diff);
+    if (matches.length > 0) {
+      return matches[Math.floor(Math.random() * matches.length)];
+    }
+  }
+  return pool[0] ?? null;
+}
+
+function buildPool(mode: QuizMode): Question[] {
+  const shsShuffled = shuffleArray(SHS_QUESTIONS);
+  const triviaShuffled = shuffleArray(TRIVIA_QUESTIONS);
+
+  if (mode === 'SHS') return shsShuffled.slice(0, QUESTIONS_PER_GAME);
+  if (mode === 'Trivia') return triviaShuffled.slice(0, QUESTIONS_PER_GAME);
+  // Mixed: 10 SHS + 5 Trivia
+  return shuffleArray([...shsShuffled.slice(0, SHS_COUNT), ...triviaShuffled.slice(0, TRIVIA_COUNT)]);
+}
 
 export function getLevel(questionIndex: number): string {
   if (questionIndex < 3) return 'Beginner';
@@ -67,7 +112,6 @@ function calculateBonus(timeLeft: number, streak: number): number {
   if (timeLeft >= 11) speedBonus = 5;
   else if (timeLeft >= 6) speedBonus = 3;
   else if (timeLeft >= 1) speedBonus = 1;
-
   const multiplier = getStreakMultiplier(streak);
   return Math.round(speedBonus * multiplier);
 }
@@ -76,18 +120,19 @@ export function useQuiz() {
   const [state, setState] = useState<QuizState>(() => {
     const savedHighScore = parseInt(localStorage.getItem(HIGH_SCORE_KEY) || '0', 10);
     const savedTheme = (localStorage.getItem(THEME_KEY) as 'dark' | 'light') || 'dark';
-
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    if (savedTheme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
 
     return {
       screen: 'START',
+      quizMode: 'Mixed',
       questions: [],
+      remainingPool: [],
+      totalQuestions: QUESTIONS_PER_GAME,
       currentQuestionIndex: 0,
       currentShuffledAnswers: [],
+      adaptiveDifficulty: 'Medium',
+      difficultyChanged: null,
       correctCount: 0,
       bonusPoints: 0,
       totalScore: 0,
@@ -107,11 +152,8 @@ export function useQuiz() {
     setState(s => {
       const newTheme = s.theme === 'dark' ? 'light' : 'dark';
       localStorage.setItem(THEME_KEY, newTheme);
-      if (newTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      if (newTheme === 'dark') document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
       return { ...s, theme: newTheme };
     });
   }, []);
@@ -120,20 +162,26 @@ export function useQuiz() {
     setState(s => ({ ...s, isMuted: !s.isMuted }));
   }, []);
 
-  const startGame = useCallback(() => {
-    const shuffledPool = shuffleArray(QUESTION_POOL);
-    const selectedQuestions = shuffledPool.slice(0, QUESTIONS_PER_GAME);
-    const firstQuestion = selectedQuestions[0];
+  const goToModeSelect = useCallback(() => {
+    setState(s => ({ ...s, screen: 'MODE_SELECT' }));
+  }, []);
+
+  const startGame = useCallback((mode: QuizMode) => {
+    const pool = buildPool(mode);
+    const firstQ = pickQuestion(pool, 'Medium') ?? pool[0];
+    const remaining = pool.filter(q => q.id !== firstQ.id);
 
     setState(s => ({
       ...s,
       screen: 'QUIZ',
-      questions: selectedQuestions,
+      quizMode: mode,
+      questions: [firstQ],
+      remainingPool: remaining,
+      totalQuestions: pool.length,
       currentQuestionIndex: 0,
-      currentShuffledAnswers: shuffleArray([
-        firstQuestion.correctAnswer,
-        ...firstQuestion.incorrectAnswers
-      ]),
+      currentShuffledAnswers: shuffleArray([firstQ.correctAnswer, ...firstQ.incorrectAnswers]),
+      adaptiveDifficulty: firstQ.difficulty,
+      difficultyChanged: null,
       correctCount: 0,
       bonusPoints: 0,
       totalScore: 0,
@@ -177,6 +225,12 @@ export function useQuiz() {
       const newBonusPoints = s.bonusPoints + bonusEarned;
       const newTotalScore = newCorrectCount * BASE_POINTS + newBonusPoints;
 
+      const nextDiff = getNextDifficulty(s.adaptiveDifficulty, isCorrect && !isTimeout);
+      const changed =
+        nextDiff !== s.adaptiveDifficulty
+          ? nextDiff === 'Easy' || (nextDiff === 'Medium' && s.adaptiveDifficulty === 'Hard') ? 'down' : 'up'
+          : null;
+
       return {
         ...s,
         questionStatus: isTimeout ? 'timeout' : 'answered',
@@ -187,34 +241,42 @@ export function useQuiz() {
         streak: newStreak,
         maxStreak: newMaxStreak,
         lastAnswerBonus: bonusEarned,
+        difficultyChanged: changed,
       };
     });
   }, []);
 
   const nextQuestion = useCallback(() => {
     setState(s => {
-      const isLastQuestion = s.currentQuestionIndex === s.questions.length - 1;
+      const isLastQuestion = s.currentQuestionIndex === s.totalQuestions - 1;
 
       if (isLastQuestion) {
         const newHighScore = Math.max(s.totalScore, s.highScore);
         localStorage.setItem(HIGH_SCORE_KEY, newHighScore.toString());
-        return {
-          ...s,
-          screen: 'RESULTS',
-          highScore: newHighScore,
-        };
+        return { ...s, screen: 'RESULTS', highScore: newHighScore };
       }
 
-      const nextIndex = s.currentQuestionIndex + 1;
-      const nextQ = s.questions[nextIndex];
+      const lastAnswer = s.answers[s.answers.length - 1];
+      const wasCorrect = lastAnswer?.isCorrect ?? false;
+      const nextDiff = getNextDifficulty(s.adaptiveDifficulty, wasCorrect);
+
+      const nextQ = pickQuestion(s.remainingPool, nextDiff);
+      if (!nextQ) {
+        const newHighScore = Math.max(s.totalScore, s.highScore);
+        localStorage.setItem(HIGH_SCORE_KEY, newHighScore.toString());
+        return { ...s, screen: 'RESULTS', highScore: newHighScore };
+      }
+
+      const newPool = s.remainingPool.filter(q => q.id !== nextQ.id);
 
       return {
         ...s,
-        currentQuestionIndex: nextIndex,
-        currentShuffledAnswers: shuffleArray([
-          nextQ.correctAnswer,
-          ...nextQ.incorrectAnswers
-        ]),
+        questions: [...s.questions, nextQ],
+        remainingPool: newPool,
+        currentQuestionIndex: s.currentQuestionIndex + 1,
+        currentShuffledAnswers: shuffleArray([nextQ.correctAnswer, ...nextQ.incorrectAnswers]),
+        adaptiveDifficulty: nextDiff,
+        difficultyChanged: null,
         timeLeft: TIME_PER_QUESTION,
         questionStatus: 'idle',
         lastAnswerBonus: 0,
@@ -234,20 +296,15 @@ export function useQuiz() {
     setState(s => ({ ...s, screen: 'START' }));
   }, []);
 
-  // Timer logic
+  // Timer
   useEffect(() => {
     if (state.screen !== 'QUIZ' || state.questionStatus !== 'idle') return;
-
     const timer = setInterval(() => {
       setState(s => {
-        if (s.timeLeft <= 1) {
-          clearInterval(timer);
-          return { ...s, timeLeft: 0 };
-        }
+        if (s.timeLeft <= 1) { clearInterval(timer); return { ...s, timeLeft: 0 }; }
         return { ...s, timeLeft: s.timeLeft - 1 };
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, [state.screen, state.questionStatus, state.currentQuestionIndex]);
 
@@ -263,6 +320,7 @@ export function useQuiz() {
     startGame,
     submitAnswer,
     nextQuestion,
+    goToModeSelect,
     goToReview,
     goToResults,
     goToStart,
