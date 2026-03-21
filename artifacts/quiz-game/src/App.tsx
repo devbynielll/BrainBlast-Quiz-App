@@ -109,6 +109,14 @@ function App() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Subtle watermark */}
+      <div className="fixed bottom-3 left-0 right-0 flex items-center justify-center pointer-events-none z-10">
+        <span className="text-xs font-medium text-muted-foreground/35 select-none">
+          Developed by Group 1
+        </span>
+      </div>
+
       <Toaster />
     </TooltipProvider>
   );
