@@ -3,6 +3,7 @@ import { useQuiz } from "./hooks/use-quiz";
 import { AnimatedBackground } from "./components/AnimatedBackground";
 import { Header } from "./components/Header";
 import { StartScreen } from "./screens/StartScreen";
+import { ModeSelectScreen } from "./screens/ModeSelectScreen";
 import { QuizScreen } from "./screens/QuizScreen";
 import { ResultsScreen } from "./screens/ResultsScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
@@ -15,6 +16,8 @@ function App() {
     startGame,
     submitAnswer,
     nextQuestion,
+    setPlayerName,
+    goToModeSelect,
     goToReview,
     goToResults,
     goToStart,
@@ -41,8 +44,21 @@ function App() {
           {state.screen === 'START' && (
             <StartScreen
               key="start"
-              onStart={startGame}
+              onStart={goToModeSelect}
               highScore={state.highScore}
+              playerName={state.playerName}
+              gamePin={state.gamePin}
+              onSetName={setPlayerName}
+            />
+          )}
+
+          {state.screen === 'MODE_SELECT' && (
+            <ModeSelectScreen
+              key="mode-select"
+              playerName={state.playerName}
+              gamePin={state.gamePin}
+              onSelectMode={startGame}
+              onBack={goToStart}
             />
           )}
 
@@ -51,7 +67,7 @@ function App() {
               key={`quiz-${state.currentQuestionIndex}`}
               question={state.questions[state.currentQuestionIndex]}
               questionIndex={state.currentQuestionIndex}
-              totalQuestions={state.questions.length}
+              totalQuestions={state.totalQuestions}
               shuffledAnswers={state.currentShuffledAnswers}
               timeLeft={state.timeLeft}
               status={state.questionStatus}
@@ -59,6 +75,9 @@ function App() {
               streak={state.streak}
               lastAnswerBonus={state.lastAnswerBonus}
               totalScore={state.totalScore}
+              adaptiveDifficulty={state.adaptiveDifficulty}
+              difficultyChanged={state.difficultyChanged}
+              playerName={state.playerName}
               onSubmit={submitAnswer}
               onNext={nextQuestion}
             />
@@ -68,12 +87,15 @@ function App() {
             <ResultsScreen
               key="results"
               correctCount={state.correctCount}
-              totalQuestions={state.questions.length}
+              totalQuestions={state.totalQuestions}
               totalScore={state.totalScore}
               highScore={state.highScore}
               maxStreak={state.maxStreak}
               answers={state.answers}
-              onPlayAgain={startGame}
+              playerName={state.playerName}
+              quizMode={state.quizMode}
+              gamePin={state.gamePin}
+              onPlayAgain={goToModeSelect}
               onReview={goToReview}
             />
           )}
