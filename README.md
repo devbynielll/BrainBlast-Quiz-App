@@ -1,9 +1,6 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/devbynielll/brainblast-adaptive-quiz-website/main/brainblast-logo-removebg-preview.png" width="200" />
+  <img src="https://raw.githubusercontent.com/devbynielll/brainblast-adaptive-quiz-website/main/brainblast-logo-removebg-preview.png" width="250" />
 </p>
-
-<h1 align="center">BrainBlast</h1>
-
 
 # 🧠 BrainBlast – Adaptive Quiz Web Application
 
