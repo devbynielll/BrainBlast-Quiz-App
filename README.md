@@ -1,3 +1,16 @@
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/devbynielll/brainblast-adaptive-quiz-website/main/brainblast-logo-removebg-preview.png" width="150" />
+</p>
+
+<h1 align="center">BrainBlast</h1>
+
+<p align="center">
+  Adaptive Quiz Web Application
+</p>
+
+
+
 # 🧠 BrainBlast – Adaptive Quiz Web Application
 
 An interactive web-based quiz platform designed for Senior High School (SHS) students in the Philippines. BrainBlast enhances learning through gamification, adaptive difficulty, and performance insights.
