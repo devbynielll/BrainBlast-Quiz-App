@@ -86,7 +86,8 @@ export function QuizScreen({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -60 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="min-h-screen flex flex-col justify-start px-4 pb-14 max-w-4xl mx-auto w-full"
+      className="min-h-screen flex flex-col justify-center px-4 py-28 max-w-4xl mx-auto w-full"
+
     >
       <div className="mb-4 flex justify-end">
         <button
