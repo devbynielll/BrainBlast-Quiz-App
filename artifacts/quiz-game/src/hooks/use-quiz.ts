@@ -137,6 +137,29 @@ function calcBonus(timeLeft: number, streak: number): number {
   return Math.round(sp * getStreakMultiplier(streak));
 }
 
+function resetActiveQuizState(state: QuizState): QuizState {
+  return {
+    ...state,
+    screen: 'MODE_SELECT',
+    questions: [],
+    remainingPool: [],
+    totalQuestions: 15,
+    currentQuestionIndex: 0,
+    currentShuffledAnswers: [],
+    adaptiveDifficulty: 'Medium',
+    difficultyChanged: null,
+    correctCount: 0,
+    bonusPoints: 0,
+    totalScore: 0,
+    answers: [],
+    timeLeft: TIME_PER_QUESTION,
+    questionStatus: 'idle',
+    streak: 0,
+    maxStreak: 0,
+    lastAnswerBonus: 0,
+  };
+}
+
 export function useQuiz() {
   const [state, setState] = useState<QuizState>(() => {
     const hs = parseInt(localStorage.getItem(HIGH_SCORE_KEY) || '0', 10);
@@ -176,7 +199,24 @@ export function useQuiz() {
   const goToStart = useCallback(() => setState(s => ({ ...s, screen: 'START' })), []);
 
   const goToModeSelect = useCallback(() => {
+    setState(s => ({ ...s, screen: 'MODE_SELECT' }));
+  }, []);
+
+  const createNewGameSession = useCallback(() => {
     setState(s => ({ ...s, screen: 'MODE_SELECT', gamePin: genPin() }));
+  }, []);
+
+  const exitQuiz = useCallback(() => {
+    setState(s => resetActiveQuizState(s));
+  }, []);
+
+  const joinGameByPin = useCallback((pin: string) => {
+    const normalizedPin = pin.trim();
+
+    // TODO: Replace this placeholder flow with a backend/shared-session lookup.
+    // For now we preserve the entered PIN in state and continue to mode selection
+    // so the UI flow remains testable without changing quiz behavior elsewhere.
+    setState(s => ({ ...s, screen: 'MODE_SELECT', gamePin: normalizedPin }));
   }, []);
 
   const startGame = useCallback((mode: QuizMode) => {
@@ -279,6 +319,6 @@ export function useQuiz() {
   return {
     state, startGame, submitAnswer, nextQuestion,
     setPlayerName, goToModeSelect, goToReview, goToResults, goToStart,
-    toggleTheme, toggleMute,
+    toggleTheme, toggleMute, joinGameByPin, createNewGameSession, exitQuiz,
   };
 }

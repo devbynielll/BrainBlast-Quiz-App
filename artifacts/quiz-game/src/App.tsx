@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useQuiz } from "./hooks/use-quiz";
 import { AnimatedBackground } from "./components/AnimatedBackground";
@@ -18,12 +19,59 @@ function App() {
     nextQuestion,
     setPlayerName,
     goToModeSelect,
+    createNewGameSession,
+    joinGameByPin,
     goToReview,
     goToResults,
     goToStart,
+    exitQuiz,
     toggleTheme,
     toggleMute,
   } = useQuiz();
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const prevScreenRef = useRef(state.screen);
+
+  useEffect(() => {
+    const audio = new Audio("/bg-music.mp3");
+    audio.loop = false;
+    audio.volume = 0.5;
+    audio.muted = state.isMuted;
+    audioRef.current = audio;
+
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.muted = state.isMuted;
+  }, [state.isMuted]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const prevScreen = prevScreenRef.current;
+
+    // play only when entering QUIZ
+    if (prevScreen !== "QUIZ" && state.screen === "QUIZ") {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }
+
+    // stop only when leaving QUIZ
+    if (prevScreen === "QUIZ" && state.screen !== "QUIZ") {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    prevScreenRef.current = state.screen;
+  }, [state.screen]);
 
   return (
     <TooltipProvider>
@@ -35,13 +83,13 @@ function App() {
           toggleTheme={toggleTheme}
           isMuted={state.isMuted}
           toggleMute={toggleMute}
-          showScore={state.screen === 'QUIZ'}
+          showScore={state.screen === "QUIZ"}
           totalScore={state.totalScore}
           streak={state.streak}
         />
 
         <AnimatePresence mode="wait">
-          {state.screen === 'START' && (
+          {state.screen === "START" && (
             <StartScreen
               key="start"
               onStart={goToModeSelect}
@@ -49,10 +97,11 @@ function App() {
               playerName={state.playerName}
               gamePin={state.gamePin}
               onSetName={setPlayerName}
+              onJoinGame={joinGameByPin}
             />
           )}
 
-          {state.screen === 'MODE_SELECT' && (
+          {state.screen === "MODE_SELECT" && (
             <ModeSelectScreen
               key="mode-select"
               playerName={state.playerName}
@@ -62,7 +111,7 @@ function App() {
             />
           )}
 
-          {state.screen === 'QUIZ' && state.questions.length > 0 && (
+          {state.screen === "QUIZ" && state.questions.length > 0 && (
             <QuizScreen
               key={`quiz-${state.currentQuestionIndex}`}
               question={state.questions[state.currentQuestionIndex]}
@@ -80,10 +129,11 @@ function App() {
               playerName={state.playerName}
               onSubmit={submitAnswer}
               onNext={nextQuestion}
+              onExit={exitQuiz}
             />
           )}
 
-          {state.screen === 'RESULTS' && (
+          {state.screen === "RESULTS" && (
             <ResultsScreen
               key="results"
               correctCount={state.correctCount}
@@ -95,12 +145,12 @@ function App() {
               playerName={state.playerName}
               quizMode={state.quizMode}
               gamePin={state.gamePin}
-              onPlayAgain={goToModeSelect}
+              onPlayAgain={createNewGameSession}
               onReview={goToReview}
             />
           )}
 
-          {state.screen === 'REVIEW' && (
+          {state.screen === "REVIEW" && (
             <ReviewScreen
               key="review"
               answers={state.answers}
@@ -110,7 +160,6 @@ function App() {
         </AnimatePresence>
       </div>
 
-      {/* Subtle watermark */}
       <div className="fixed bottom-3 left-0 right-0 flex items-center justify-center pointer-events-none z-10">
         <span className="text-xs font-medium text-muted-foreground/35 select-none">
           Developed by Group 1

@@ -1,9 +1,19 @@
-import { useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Question, Difficulty } from "@/data/questions";
 import { getStreakLabel, getStreakMultiplier, getNextDifficulty, getDifficultyBg } from "@/hooks/use-quiz";
 import { cn } from "@/lib/utils";
-import { Clock, ArrowRight, CheckCircle2, XCircle, AlertCircle, Flame, Zap, TrendingUp, TrendingDown, Brain } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Clock, ArrowRight, CheckCircle2, XCircle, AlertCircle, Flame, Zap, TrendingUp, TrendingDown, Brain, LogOut } from "lucide-react";
 
 interface QuizScreenProps {
   question: Question;
@@ -21,6 +31,7 @@ interface QuizScreenProps {
   playerName: string;
   onSubmit: (answer: string | null) => void;
   onNext: () => void;
+  onExit: () => void;
 }
 
 const ANSWER_STYLES = [
@@ -36,8 +47,9 @@ export function QuizScreen({
   question, questionIndex, totalQuestions, shuffledAnswers,
   timeLeft, status, playerAnswer, streak, lastAnswerBonus, totalScore,
   adaptiveDifficulty, difficultyChanged, playerName,
-  onSubmit, onNext,
+  onSubmit, onNext, onExit,
 }: QuizScreenProps) {
+  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
 
   useEffect(() => {
     if (status !== 'idle') {
@@ -74,8 +86,19 @@ export function QuizScreen({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -60 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="min-h-screen flex flex-col pt-20 pb-8 px-4 max-w-4xl mx-auto w-full"
+      className="min-h-screen flex flex-col justify-start px-4 pb-14 max-w-4xl mx-auto w-full"
     >
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setIsExitDialogOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-1.5 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground shadow-lg backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:text-foreground"
+        >
+          <LogOut size={14} />
+          Exit Quiz
+        </button>
+      </div>
+
       {/* ── Top bar ── */}
       <div className="space-y-3 mb-5">
         <div className="flex flex-wrap justify-between items-center gap-2">
@@ -296,6 +319,41 @@ export function QuizScreen({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AlertDialog open={isExitDialogOpen} onOpenChange={setIsExitDialogOpen}>
+        <AlertDialogContent className="max-w-md rounded-2xl border border-border bg-card/95 p-0 shadow-[0_25px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+          <div className="overflow-hidden rounded-2xl">
+            <div className="border-b border-border bg-gradient-to-r from-primary/15 via-background to-secondary/15 px-6 py-4">
+              <AlertDialogHeader className="space-y-1 text-left">
+                <AlertDialogTitle className="text-xl font-black text-foreground">
+                  Exit this quiz?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-sm text-muted-foreground">
+                  Your current run will be cleared and you&apos;ll return to Choose Modes.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+            </div>
+
+            <div className="px-6 py-5">
+              <div className="rounded-2xl border border-border bg-background/60 px-4 py-3 text-sm text-muted-foreground">
+                Stay here to keep answering, or leave now and pick a different mode.
+              </div>
+            </div>
+
+            <AlertDialogFooter className="border-t border-border bg-background/30 px-6 py-4 sm:justify-between sm:space-x-3">
+              <AlertDialogCancel className="mt-0 rounded-xl border-border bg-transparent text-foreground hover:bg-muted/60">
+                Keep Playing
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={onExit}
+                className="rounded-xl border border-red-500/60 bg-red-500/90 text-white hover:bg-red-500"
+              >
+                Quit Quiz
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
